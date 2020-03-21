@@ -49,7 +49,7 @@
     "scriptFolder": ".",
     "scriptFileName": "build.ps1",
     "fileToBeCopied": "FileToBeCopied.txt",
-    "scriptParameters": "[concat('-artifactsLocation ', parameters('_artifactsLocation'), ' -artifactsLocationSasToken \"', parameters('_artifactsLocationSasToken'), '\" -folderName ', variables('scriptFolder')]",
+    "scriptParameters": "[concat('-artifactsLocation ', parameters('_artifactsLocation'), ' -artifactsLocationSasToken \"', parameters('_artifactsLocationSasToken'), '\" -folderName ', variables('scriptFolder'))]",
     "networkSecurityGroupName": "default-NSG"
   },
   "resources": [
