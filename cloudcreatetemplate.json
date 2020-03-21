@@ -1,103 +1,106 @@
 {
-  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
   "contentVersion": "1.0.0.0",
   "parameters": {
     "newVMName": {
       "type": "string",
-      "metadata": {
-        "description": "The name of the new vm to be created."
-      }
+      "defaultValue": "Test"
     },
-    "existingLabName": {
+    "labName": {
       "type": "string",
-      "metadata": {
-        "description": "The name of an existing lab where the new vm will be created."
-      }
+      "defaultValue": "cloudcreate"
     },
-    "existingCustomImageId": {
+    "size": {
       "type": "string",
-      "metadata": {
-        "description": "The id of an existing custom image which will be used to create the new vm. The specified image must exist in the lab (identified via the 'existingLabName' parameter)."
-      }
-    },
-    "newVMSize": {
-      "type": "string",
-      "metadata": {
-        "description": "The size of the new vm to be created."
-      }
+      "defaultValue": "Standard_D3_v2"
     },
     "userName": {
       "type": "string",
-      "metadata": {
-        "description": "The username for the local account that will be created on the new vm."
-      }
+      "defaultValue": "stephen"
     },
     "password": {
-      "type": "securestring",
-      "metadata": {
-        "description": "The password for the local account that will be created on the new vm."
-      }
+      "type": "securestring"
     },
-    "expirationDate": {
+    "Run_PowerShell_scriptFileUris": {
       "type": "string",
-      "metadata": {
-        "description": "The expiration date for the VM."
-      }
+      "defaultValue": "[[\"https://github.com/steviecoaster/CloudCreate/blob/master/build.ps1\"]"
+    },
+    "Run_PowerShell_scriptToRun": {
+      "type": "string",
+      "defaultValue": "build.ps1"
+    },
+    "Run_PowerShell_scriptArguments": {
+      "type": "string",
+      "defaultValue": ""
     }
   },
   "variables": {
     "labSubnetName": "[concat(variables('labVirtualNetworkName'), 'Subnet')]",
-    "labVirtualNetworkId": "[resourceId('Microsoft.DevTestLab/labs/virtualnetworks', parameters('existingLabName'), variables('labVirtualNetworkName'))]",
-    "labVirtualNetworkName": "[concat('Dtl', parameters('existingLabName'))]",
-    "resourceName": "[concat(parameters('existingLabName'), '/', parameters('newVMName'))]",
-    "resourceType": "Microsoft.DevTestLab/labs/virtualMachines"
+    "labVirtualNetworkId": "[resourceId('Microsoft.DevTestLab/labs/virtualnetworks', parameters('labName'), variables('labVirtualNetworkName'))]",
+    "labVirtualNetworkName": "[concat('Dtl', parameters('labName'))]",
+    "vmId": "[resourceId ('Microsoft.DevTestLab/labs/virtualmachines', parameters('labName'), parameters('newVMName'))]",
+    "vmName": "[concat(parameters('labName'), '/', parameters('newVMName'))]"
   },
   "resources": [
     {
       "apiVersion": "2018-10-15-preview",
-      "type": "Microsoft.DevTestLab/labs/virtualMachines",
-      "name": "[variables('resourceName')]",
+      "type": "Microsoft.DevTestLab/labs/virtualmachines",
+      "name": "[variables('vmName')]",
       "location": "[resourceGroup().location]",
       "properties": {
-        "customImageId": "[parameters('existingCustomImageId')]",
-        "size": "[parameters('newVMSize')]",
-        "isAuthenticationWithSshKey": false,
-        "userName": "[parameters('userName')]",
-        "sshKey": "",
-        "password": "[parameters('password')]",
         "labVirtualNetworkId": "[variables('labVirtualNetworkId')]",
+        "notes": "Windows Server 2019 Datacenter (Gen2)",
+        "galleryImageReference": {
+          "offer": "windowsserver-gen2preview",
+          "publisher": "microsoftwindowsserver",
+          "sku": "2019-datacenter-gen2",
+          "osType": "Windows",
+          "version": "latest"
+        },
+        "size": "[parameters('size')]",
+        "userName": "[parameters('userName')]",
+        "password": "[parameters('password')]",
+        "isAuthenticationWithSshKey": false,
+        "artifacts": [
+          {
+            "artifactId": "[resourceId('Microsoft.DevTestLab/labs/artifactSources/artifacts', parameters('labName'), 'public repo', 'windows-run-powershell')]",
+            "parameters": [
+              {
+                "name": "scriptFileUris",
+                "value": "[parameters('Run_PowerShell_scriptFileUris')]"
+              },
+              {
+                "name": "scriptToRun",
+                "value": "[parameters('Run_PowerShell_scriptToRun')]"
+              },
+              {
+                "name": "scriptArguments",
+                "value": "[parameters('Run_PowerShell_scriptArguments')]"
+              }
+            ]
+          }
+        ],
         "labSubnetName": "[variables('labSubnetName')]",
-		"expirationDate": "[parameters('expirationDate')]"
+        "disallowPublicIpAddress": true,
+        "storageType": "Standard",
+        "allowClaim": false,
+        "networkInterface": {
+          "sharedPublicIpAddressConfiguration": {
+            "inboundNatRules": [
+              {
+                "transportProtocol": "tcp",
+                "backendPort": 3389
+              }
+            ]
+          }
+        }
       }
     }
   ],
-  {
-   "type": "Microsoft.Compute/virtualMachines/extensions",
-   "name": "MyCustomScriptExtension",
-   "apiVersion": "2015-05-01-preview",
-   "location": "[parameters('location')]",
-   "dependsOn": [
-       "[concat('Microsoft.Compute/virtualMachines/',parameters('vmName'))]"
-   ],
-
-   "properties": {
-       "publisher": "Microsoft.Compute",
-       "type": "CustomScriptExtension",
-       "typeHandlerVersion": "1.7",
-       "autoUpgradeMinorVersion":true,
-       "settings": {
-           "fileUris": [
-           "https://github.com/steviecoaster/CloudCreate/blob/master/build.ps1",
-
-       ],
-       "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File build.ps1"
-     }
-   }
- },
   "outputs": {
-    "vmId": {
+    "labVMId": {
       "type": "string",
-      "value": "[resourceId(variables('resourceType'), parameters('existingLabName'), parameters('newVMName'))]"
+      "value": "[variables('vmId')]"
     }
   }
 }
