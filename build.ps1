@@ -13,6 +13,8 @@ Install-Module Selenium -Force -SkipPublisherCheck -Verbose
 #Import the modules we will need
 Import-Module Selenium -Force
 #endregion
+
+#region Nexus
 choco install nexus-repository -y --no-progress
 choco install chocolatey-nexus-setup -y -s C:\packages --no-progress
 
@@ -78,7 +80,7 @@ $createHostedRepoParams = @{
     ApiHeader = $header
     Script    = @"
 import org.sonatype.nexus.repository.Repository;
-repository.createNugetHosted("Private","$($params.BlobStoreName)");
+repository.createNugetHosted("Internal","$($params.BlobStoreName)");
 "@
 }
 
@@ -104,7 +106,7 @@ $createGroupRepoParams = @{
     ApiHeader = $header
     Script = @"
 import org.sonatype.nexus.repository.Repository;
-repository.createNugetGroup("Group",["Private","Community"],"$($params.BlobStoreName)")
+repository.createNugetGroup("ChocoGroup",["Internal","Community"],"$($params.BlobStoreName)")
 
 "@
 }
@@ -140,8 +142,7 @@ $getApiKeyParams = @{
 $result = Invoke-NexusScript @getApiKeyParams
 
 #Remove default Nexus Repositories
-$defaultRepositories = @('choco-install',
-                         'choco-hosted')
+$defaultRepositories = @('choco-hosted')
 
 Write-Host "Removing default Nexus repositories"
 Foreach($default in $defaultRepositories){
@@ -166,18 +167,18 @@ $packages = Get-ChildItem -Path C:\packages -Filter "*.nupkg"
 
 If($Packages.Count -gt 0){
     $packages | Foreach-Object {
-        choco push $_.Fullname -s http://localhost:8081/repository/Private/ --api-key $NugetApiKey --force
+        choco push $_.Fullname -s http://localhost:8081/repository/Internal/ --api-key $NugetApiKey --force
     }
 }
 
 
 Write-Host "Configuring choco sources"
-choco source add -n Covid -s http://localhost:8081/repository/Private/
+choco source add -n ChocoGroup -s http://localhost:8081/repository/ChocoGroup/
 choco source disable -n chocolatey
 
 Write-Host "Verifying source contents"
-choco list -s Covid
-#region Nexus
+choco list -s ChocoGroup
+#endregion
 
 #region Nexus Firewall Rules
 $fwParams = @{
