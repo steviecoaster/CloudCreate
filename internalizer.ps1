@@ -1,15 +1,19 @@
 [cmdletBinding()]
-Param(
-    [Parameter()]
-    [String[]]
-    $Packages,
+param(
+    [parameter()]
+    [string[]]
+    $Packages = @('googlechrome','firefox','git','discord','microsoft-teams','zoom','gotomeeting','skype','skypeforbusiness','slack','vscode','adobereader','foxitreader','spotify','gitkraken','git-fork'),
 
-    [Parameter()]
-    [String]
+    [parameter()]
+    [string]
     $RepositoryUrl = 'http://localhost:8081/repository/Internal',
 
-    [Parameter()]
-    [String]
+    [parameter()]
+    [string]
+    $RemoteRepo = 'https://chocolatey.org/api/v2'
+
+    [parameter()]
+    [string]
     $NexusApiKey = $NugetApiKey
 
 )
@@ -22,10 +26,10 @@ process {
     }
 
     $Guid = [Guid]::NewGuid().Guid
-    $null = New-Item "$env:TEMP\$($Guid)"
+    $null = New-Item "$env:TEMP\$($Guid)" -ItemType Directory
 
     foreach ($package in $packages) {
-        choco download $package --internalize --output-directory "$env:TEMP\$Guid"
+        choco download $package --internalize --output-directory "$env:TEMP\$Guid" --no-progress --internalize-all-urls --append-use-original-location -s $RemoteRepo
     }
 
     Get-ChildItem "$env:TEMP\$Guid" -Filter *.nupkg -Recurse | Foreach-Object {
