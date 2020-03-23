@@ -63,7 +63,7 @@ $createHostedRepoParams = @{
     ApiHeader = $header
     Script    = @"
 import org.sonatype.nexus.repository.Repository;
-repository.createNugetHosted("Internal","$($params.BlobStoreName)");
+repository.createNugetHosted("ChocolateyInternal","$($params.BlobStoreName)");
 "@
 }
 
@@ -76,7 +76,7 @@ $createProxyRepoParams = @{
     ApiHeader = $header
     Script = @"
 import org.sonatype.nexus.repository.Repository;
-repository.createNugetProxy("Community","https://chocolatey.org/api/v2","$($params.BlobStoreName)");
+repository.createNugetProxy("ChocolateyCommunity","https://chocolatey.org/api/v2","$($params.BlobStoreName)");
 "@
 }
 
@@ -89,7 +89,7 @@ $createGroupRepoParams = @{
     ApiHeader = $header
     Script = @"
 import org.sonatype.nexus.repository.Repository;
-repository.createNugetGroup("ChocolateyGroup",["Internal","Community"],"$($params.BlobStoreName)")
+repository.createNugetGroup("ChocolateyGroup",["ChocolateyInternal","ChocolateyCommunity"],"$($params.BlobStoreName)")
 
 "@
 }
@@ -150,7 +150,7 @@ $packages = Get-ChildItem -Path C:\packages -Filter "*.nupkg"
 
 If($Packages.Count -gt 0){
     $packages | Foreach-Object {
-        choco push $_.Fullname -s http://localhost:8081/repository/Internal/ --api-key $NugetApiKey --force
+        choco push $_.Fullname -s http://localhost:8081/repository/ChocolateyInternal/ --api-key $NugetApiKey --force
     }
 }
 
