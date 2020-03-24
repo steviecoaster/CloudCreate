@@ -3,7 +3,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 #endregion
 
-<#
+
 #region Selenium
 #Get Latest Pester.....bullet-proof/strong arm/asshole method
 $null = Install-PackageProvider -Name NuGet -Force
@@ -45,7 +45,7 @@ $null = New-Item C:\jenkinsxml -Itemtype Directory
 }
 [system.net.webclient]::new().DownloadFile('https://github.com/steviecoaster/CloudCreate/raw/master/jenkins-cli.jar','C:\jenkinsxml\jenkins-cli.jar')
 #endregion
-
+<#
 #region Nexus
 choco install nexus-repository -y --no-progress
 
