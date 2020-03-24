@@ -45,12 +45,8 @@ Function Get-Scripts {
 }
 
 Function Install-Nexus {
-<<<<<<< HEAD
   choco install nexus-repository -y -s https://chocolatey.org/api/v2
   choco install nexus-repository -y --no-progress
-=======
-choco install nexus-repository -y --no-progress
->>>>>>> e073229df9273de84df292b15cef9151d1b566c0
 
   function Invoke-NexusScript {
 
