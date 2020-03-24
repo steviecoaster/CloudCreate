@@ -45,8 +45,12 @@ Function Get-Scripts {
 }
 
 Function Install-Nexus {
+<<<<<<< HEAD
   choco install nexus-repository -y -s https://chocolatey.org/api/v2
   choco install nexus-repository -y --no-progress
+=======
+choco install nexus-repository -y --no-progress
+>>>>>>> e073229df9273de84df292b15cef9151d1b566c0
 
   function Invoke-NexusScript {
 
@@ -246,9 +250,15 @@ Function Install-Nexus {
 
 
   Write-Host "$finishOutput" -ForegroundColor Green
+<<<<<<< HEAD
 
   $global:NugetApiKey = $result.result
 
+=======
+
+  $global:NugetApiKey = $result.result
+
+>>>>>>> e073229df9273de84df292b15cef9151d1b566c0
   #Create Hosted Repository
   $createHostedRepoParams = @{
       ServerUri = $params.ServerUri
@@ -303,6 +313,7 @@ Function Install-Nexus {
 "@
       }
 
+
       $null = Invoke-NexusScript @removalParams
   }
 
@@ -319,6 +330,26 @@ Function Install-Nexus {
   Write-Host "Configuring choco sources"
   choco source add -n Internal_Chocolatey -s http://localhost:8081/repository/ChocolateyGroup/
   choco source disable -n chocolatey
+
+
+
+      $null = Invoke-NexusScript @removalParams
+  }
+
+  Write-Host "Seeding repository"
+
+  $packages = Get-ChildItem -Path C:\packages -Filter "*.nupkg"
+
+  If($Packages.Count -gt 0){
+      $packages | Foreach-Object {
+          choco push $_.Fullname -s http://localhost:8081/repository/Internal/ --api-key $Global:NugetApiKey --force
+      }
+  }
+
+  Write-Host "Configuring choco sources"
+  choco source add -n Internal_Chocolatey -s http://localhost:8081/repository/ChocolateyGroup/
+  choco source disable -n chocolatey
+
 
 }
 
@@ -349,8 +380,13 @@ Function Install-Jenkins {
   Get-ChildItem -Path 'C:\tools\selenium\*' | Copy-Item -Destination "$ModuleBase\assemblies\" -Force -ErrorAction SilentlyContinue
 
   # Start Jenkins in Selenium
+
   $driver = Start-SeChrome -Maximized -Headless
   Start-Sleep -Seconds 20
+
+  $driver = Start-SeChrome -Maximized -Arguments disable-gpu -ErrorAction SilentlyContinue
+  Start-Sleep -Seconds 30
+
   Enter-SeUrl -Url http://localhost:8080 -Driver $driver
   Start-Sleep -Seconds 3
 
