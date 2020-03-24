@@ -384,7 +384,7 @@ Function Install-Jenkins {
   $driver = Start-SeChrome -Maximized -Headless
   Start-Sleep -Seconds 20
 
-  $driver = Start-SeChrome -Maximized -Arguments disable-gpu -ErrorAction SilentlyContinue
+  $driver = Start-SeChrome -Maximized -Headless
   Start-Sleep -Seconds 30
 
   Enter-SeUrl -Url http://localhost:8080 -Driver $driver
@@ -407,7 +407,7 @@ Function Install-Jenkins {
 
   # Install Suggested Plugins
   $SuggestedPlugins = Find-SeElement -Driver $driver -XPath '/html/body/div[2]/div/div/div/div/div/div/div[2]/div/p[2]/a[1]'
-  Invoke-SeClick -Driver $driver -Element $SuggestedPlugins -Headless
+  Invoke-SeClick -Driver $driver -Element $SuggestedPlugins
   Start-Sleep -Seconds 240
 
   Write-Verbose -Message "Installed suggested Plugins"
