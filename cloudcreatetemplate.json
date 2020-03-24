@@ -49,11 +49,11 @@
       "location": "[resourceGroup().location]",
       "properties": {
         "labVirtualNetworkId": "[variables('labVirtualNetworkId')]",
-        "notes": "Windows Server 2019 Datacenter (Gen2)",
+        "notes": "Windows Server 2019 Datacenter",
         "galleryImageReference": {
-          "offer": "windowsserver-gen2preview",
-          "publisher": "microsoftwindowsserver",
-          "sku": "2019-datacenter-gen2",
+          "offer": "WindowsServer",
+          "publisher": "MicrosoftWindowsServer",
+          "sku": "2019-Datacenter",
           "osType": "Windows",
           "version": "latest"
         },
