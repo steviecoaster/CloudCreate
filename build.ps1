@@ -397,7 +397,7 @@ Function Install-Jenkins {
   $input = Find-SeElement -Driver $driver -Id 'security-token'
   Send-SeKeys -Element $input -Keys "$(Get-Clipboard)"
   Start-Sleep -Seconds 5
-  Write-Host "Logged into UI"
+  Write-Verbos -Message "Logged into UI"
 
   $Continue = Find-SeElement -Driver $driver -XPath '/html/body/div[2]/div/form/div[1]/div/div/div/div[3]/input'
   Invoke-SeClick -Driver $driver -Element $Continue
