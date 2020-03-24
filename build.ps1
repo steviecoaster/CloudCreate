@@ -1,4 +1,4 @@
-Function Install-Chocolatey {y
+Function Install-Chocolatey {
   Set-ExecutionPolicy Bypass -Scope Process -Force
   Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 }
@@ -44,306 +44,174 @@ Function Get-Scripts {
   [system.net.webclient]::new().DownloadFile('https://github.com/steviecoaster/CloudCreate/raw/master/jenkins-cli.jar','C:\jenkinsxml\jenkins-cli.jar')
 }
 
+function Invoke-NexusScript {
+
+    [CmdletBinding()]
+    Param (
+        [Parameter(Mandatory)]
+        [String]
+        $ServerUri,
+
+        [Parameter(Mandatory)]
+        [Hashtable]
+        $ApiHeader,
+        
+        [Parameter(Mandatory)]
+        [String]
+        $Script
+    )
+
+    $scriptName = [GUID]::NewGuid().ToString()
+    $body = @{
+        name    = $scriptName
+        type    = 'groovy'
+        content = $Script
+    }
+
+    # Call the API
+    $baseUri = "$ServerUri/service/rest/v1/script"
+
+    #Store the Script
+    $uri = $baseUri
+    Invoke-RestMethod -Uri $uri -ContentType 'application/json' -Body $($body | ConvertTo-Json) -Header $ApiHeader -Method Post
+    #Run the script
+    $uri = "{0}/{1}/run" -f $baseUri, $scriptName
+    $result = Invoke-RestMethod -Uri $uri -ContentType 'text/plain' -Header $ApiHeader -Method Post
+    #Delete the Script
+    $uri = "{0}/{1}" -f $baseUri, $scriptName
+    Invoke-RestMethod -Uri $uri -Header $ApiHeader -Method Delete -UseBasicParsing
+
+    $result
+
+}
+
 Function Install-Nexus {
-  choco install nexus-repository -y -s https://chocolatey.org/api/v2 --no-progress
+choco install nexus-repository -y --no-progress -s chocolatey
+[System.Net.WebClient]::DownoadFile("https://chocolatey.box.com/shared/static/hfb7zzpv3ellfnvljly7wgniryuxudhk.nupkg","D:\packages\chocolatey-nexus-setup.0.1.0.nupkg")
+choco install chocolatey-nexus-setup -y -s D:\packages --no-progress
 
-  function Invoke-NexusScript {
+#Global parameter values
+$params = @{
+    ServerUri      = 'http://localhost:8081'
+    BlobStoreName  = 'default'
+    Username = 'admin'
+    Password = "$(Get-Content 'C:\ProgramData\sonatype-work\nexus3\admin.password')"
+}
 
-      [CmdletBinding()]
-      Param (
-          [Parameter(Mandatory)]
-          [String]
-          $ServerUri,
+#Build Authentication Header
+$credPair = ("{0}:{1}" -f $params.Username, $params.Password)
+$encodedCreds = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($credPair))
+$header = @{
+    Authorization = "Basic $encodedCreds"
+}
 
-          [Parameter(Mandatory)]
-          [Hashtable]
-          $ApiHeader,
-          
-          [Parameter(Mandatory)]
-          [String]
-          $Script
-      )
-
-      $scriptName = [GUID]::NewGuid().ToString()
-      $body = @{
-          name    = $scriptName
-          type    = 'groovy'
-          content = $Script
-      }
-
-      # Call the API
-      $baseUri = "$ServerUri/service/rest/v1/script"
-
-      #Store the Script
-      $uri = $baseUri
-      Invoke-RestMethod -Uri $uri -ContentType 'application/json' -Body $($body | ConvertTo-Json) -Header $ApiHeader -Method Post
-      #Run the script
-      $uri = "{0}/{1}/run" -f $baseUri, $scriptName
-      $result = Invoke-RestMethod -Uri $uri -ContentType 'text/plain' -Header $ApiHeader -Method Post
-      #Delete the Script
-      $uri = "{0}/{1}" -f $baseUri, $scriptName
-      Invoke-RestMethod -Uri $uri -Header $ApiHeader -Method Delete -UseBasicParsing
-
-      $result
-
-  }
-
-
-
-  # default parameters
-  $defaultParams = @{
-      ServerUri      = 'http://localhost:8081'
-      NuGetRepositoryName = 'choco-hosted'
-      RawRepositoryName = 'choco-install'
-      BlobStoreName  = 'default'
-      Username = 'admin'
-      Password = "$(Get-Content 'C:\ProgramData\sonatype-work\nexus3\admin.password')"
-  }
-
-  # defaults
-  $params = @{}
-
-
-
-  # loop through the defaults
-  # if a parameter does not exist that matches the $defaultParams.Keys then use the value from $defaultParams
-  $defaultParams.Keys | ForEach-Object {
-      if (-not $params.$_) {
-          $params.$_ = $defaultParams.$_
-      }
-  }
-
-  # trim any trailing '/' from the URI
-  $params.ServerUri = $params.ServerUri.trim('/')
-
-  # Tell the user the details we are going to use
-  Write-Host "Will create a repository using these details:"
-  $params.Keys | ForEach-Object {
-      Write-Host ("    {0,-20} : {1}" -f $_, $params.$_)
-  }
-
-  # Create the Api header
-  $credPair = ("{0}:{1}" -f $params.Username, $params.Password)
-  $encodedCreds = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($credPair))
-  $header = @{
-      Authorization = "Basic $encodedCreds"
-  }
-
-  # Check the repo does not already exist
-  $repositories = Invoke-RestMethod -Uri 'http://localhost:8081/service/rest/v1/repositories' -Method Get -Headers $header
-  if ($params.NuGetRepositoryName -in @($repositories.Name)) {
-      throw "Cannot create repository '$($params.NuGetRepositoryName)' as it already exists!"
-  }
-
-  # Create the NuGet Repo
-  $createRepoParams = @{
-      ServerUri = $params.ServerUri
-      ApiHeader = $header
-      Script    = @"
-  import org.sonatype.nexus.repository.Repository;
-  repository.createNugetHosted("$($params.NuGetRepositoryName)","$($params.BlobStoreName)");
+#Create Hosted Repository
+$createHostedRepoParams = @{
+    ServerUri = $params.ServerUri
+    ApiHeader = $header
+    Script    = @"
+import org.sonatype.nexus.repository.Repository;
+repository.createNugetHosted("ChocolateyInternal","$($params.BlobStoreName)");
 "@
-  }
+}
 
-  Write-Host "Creating Nuget repository: $($params.NuGetRepositoryName)"
-  $null = Invoke-NexusScript @createRepoParams
+Write-Host "Creating Nuget repository: $($params.NuGetRepositoryName)"
+$null = Invoke-NexusScript @createHostedRepoParams
 
-  #Create the Raw Repository
-  $createRawParams = @{
-      ServerUri = $params.ServerUri
-      ApiHeader = $header
-      Script = @"
-  import org.sonatype.nexus.repository.Repository;
-  repository.createRawHosted("$($params.RawRepositoryName)","$($params.BlobStoreName)");
+#Create Proxy Repository
+$createProxyRepoParams = @{
+    ServerUri = $params.ServerUri
+    ApiHeader = $header
+    Script = @"
+import org.sonatype.nexus.repository.Repository;
+repository.createNugetProxy("ChocolateyCommunity","https://chocolatey.org/api/v2","$($params.BlobStoreName)");
 "@
-  }
+}
 
-  Write-Host "Creating Raw repository: $($params.RawRepositoryName)"
-  $null = Invoke-NexusScript @createRawParams
+Write-Host "Creating NuGet Proxy Repository"
+$null = Invoke-NexusScript @createProxyRepoParams
 
-  # Enable the NuGet Relam
-  $enableNugetRealmParams = @{
-      ServerUri = $params.ServerUri
-      ApiHeader = $header
-      Script    = @"
-  import org.sonatype.nexus.security.realm.RealmManager
-  realmManager = container.lookup(RealmManager.class.getName())
-  // enable/disable the NuGet API-Key Realm
-  realmManager.enableRealm("NuGetApiKey")
+#Create Group Repository
+$createGroupRepoParams = @{
+    ServerUri = $params.ServerUri
+    ApiHeader = $header
+    Script = @"
+import org.sonatype.nexus.repository.Repository;
+repository.createNugetGroup("ChocolateyGroup",["ChocolateyInternal","ChocolateyCommunity"],"$($params.BlobStoreName)")
+
 "@
-  }
+}
 
-  Write-Host "Enabling the NuGet-ApiKey Realm"
-  $null = Invoke-NexusScript @enableNugetRealmParams
+Write-Host "Creating Nuget Group Repository"
+$null = Invoke-NexusScript @createGroupRepoParams
 
-  #Remove default Nexus Repositories
-  $defaultRepositories = @('nuget-group',
-                          'maven-snapshots',
-                          'maven-central',
-                          'nuget.org-proxy',
-                          'maven-releases',
-                          'nuget-hosted',
-                          'maven-public')
+#Surface the API Key
+$getApiKeyParams = @{
+    ServerUri = $params.ServerUri
+    ApiHeader = $header
+    Script    = @" 
+    import org.sonatype.nexus.security.authc.apikey.ApiKeyStore
+    import org.sonatype.nexus.security.realm.RealmManager
+    import org.apache.shiro.subject.SimplePrincipalCollection
+    
+    def getOrCreateNuGetApiKey(String userName) {
+        realmName = "NexusAuthenticatingRealm"
+        apiKeyDomain = "NuGetApiKey"
+        principal = new SimplePrincipalCollection(userName, realmName)
+        keyStore = container.lookup(ApiKeyStore.class.getName())
+        apiKey = keyStore.getApiKey(apiKeyDomain, principal)
+        if (apiKey == null) {
+            apiKey = keyStore.createApiKey(apiKeyDomain, principal)
+        }
+        return apiKey.toString()
+    }
+    
+    getOrCreateNuGetApiKey("$($params.Username)")
+"@
+}
 
-  Write-Host "Removing default Nexus repositories"
-  Foreach($default in $defaultRepositories){
-      $removalParams = @{
-          ServerUri = $params.ServerUri
-          ApiHeader = $header
-          Script = @"
-  import org.sonatype.nexus.repository.Repository;
-  repository.getRepositoryManager().delete("$default");
+$result = Invoke-NexusScript @getApiKeyParams
+
+#Remove default Nexus Repositories
+$defaultRepositories = @('choco-hosted')
+
+Write-Host "Removing default Nexus repositories"
+Foreach($default in $defaultRepositories){
+    $removalParams = @{
+        ServerUri = $params.ServerUri
+        ApiHeader = $header
+        Script = @"
+import org.sonatype.nexus.repository.Repository;
+repository.getRepositoryManager().delete("$default");
 "@
     }
 
-      $null = Invoke-NexusScript @removalParams
-  }
+    $null = Invoke-NexusScript @removalParams
+}
 
-  $getApiKeyParams = @{
-      ServerUri = $params.ServerUri
-      ApiHeader = $header
-      Script    = @" 
-      import org.sonatype.nexus.security.authc.apikey.ApiKeyStore
-      import org.sonatype.nexus.security.realm.RealmManager
-      import org.apache.shiro.subject.SimplePrincipalCollection
-      
-      def getOrCreateNuGetApiKey(String userName) {
-          realmName = "NexusAuthenticatingRealm"
-          apiKeyDomain = "NuGetApiKey"
-          principal = new SimplePrincipalCollection(userName, realmName)
-          keyStore = container.lookup(ApiKeyStore.class.getName())
-          apiKey = keyStore.getApiKey(apiKeyDomain, principal)
-          if (apiKey == null) {
-              apiKey = keyStore.createApiKey(apiKeyDomain, principal)
-          }
-          return apiKey.toString()
-      }
-      
-      getOrCreateNuGetApiKey("$($params.Username)")
-"@
-  }
+$global:NugetApiKey = $result.result
 
-  $result = Invoke-NexusScript @getApiKeyParams
+$NuGetApiKey | Set-Content $env:TEMP\NugetApiKey.txt
+Write-Host "Seeding repository"
 
-  $global:NugetApiKey = $result.result
+$packages = Get-ChildItem -Path C:\packages -Filter "*.nupkg"
 
-  $finishOutput = @"
-  ##############################################################
-
-  Nexus Repository Setup Completed
-  Please login to the following URL to complete admin account setup:
-
-  Server Url: $($params.ServerUri)
-
-  You will need the following API Key to complete Administrative workstation setup.
-  The API Key can be accessed at:  $($params.ServerUri)/#user/nugetapitoken
-
-  NuGet ApiKey: $NugetApiKey
-
-  ##############################################################
-"@
+If($Packages.Count -gt 0){
+    $packages | Foreach-Object {
+        choco push $_.Fullname -s http://localhost:8081/repository/ChocolateyInternal/ --api-key $NugetApiKey --force
+    }
+}
 
 
-  Write-Host "$finishOutput" -ForegroundColor Green
+Write-Host "Configuring choco sources"
+choco source add -n Internal_Chocolatey -s http://localhost:8081/repository/ChocolateyGroup/
+choco source disable -n chocolatey
 
-
-  $global:NugetApiKey = $result.result
-
-
-
-  #Create Hosted Repository
-  $createHostedRepoParams = @{
-      ServerUri = $params.ServerUri
-      ApiHeader = $header
-      Script    = @"
-  import org.sonatype.nexus.repository.Repository;
-  repository.createNugetHosted("Internal","$($params.BlobStoreName)");
-"@
-  }
-
-  Write-Host "Creating Nuget repository: $($params.NuGetRepositoryName)"
-  $null = Invoke-NexusScript @createHostedRepoParams
-
-  #Create Proxy Repository
-  $createProxyRepoParams = @{
-      ServerUri = $params.ServerUri
-      ApiHeader = $header
-      Script = @"
-  import org.sonatype.nexus.repository.Repository;
-  repository.createNugetProxy("Community","https://chocolatey.org/api/v2","$($params.BlobStoreName)");
-"@
-  }
-
-  Write-Host "Creating NuGet Proxy Repository"
-  $null = Invoke-NexusScript @createProxyRepoParams
-
-  #Create Group Repository
-  $createGroupRepoParams = @{
-      ServerUri = $params.ServerUri
-      ApiHeader = $header
-      Script = @"
-  import org.sonatype.nexus.repository.Repository;
-  repository.createNugetGroup("ChocolateyGroup",["Internal","Community"],"$($params.BlobStoreName)")
-
-"@
-  }
-
-  Write-Host "Creating Nuget Group Repository"
-  $null = Invoke-NexusScript @createGroupRepoParams
-
-  #Remove default Nexus Repositories
-  $defaultRepositories = @('choco-hosted')
-
-  Write-Host "Removing default Nexus repositories"
-  Foreach($default in $defaultRepositories){
-      $removalParams = @{
-          ServerUri = $params.ServerUri
-          ApiHeader = $header
-          Script = @"
-  import org.sonatype.nexus.repository.Repository;
-  repository.getRepositoryManager().delete("$default");
-"@
-      }
-
-
-      $null = Invoke-NexusScript @removalParams
-  }
-
-  Write-Host "Seeding repository"
-
-  $packages = Get-ChildItem -Path C:\packages -Filter "*.nupkg"
-
-  If($Packages.Count -gt 0){
-      $packages | Foreach-Object {
-          choco push $_.Fullname -s http://localhost:8081/repository/Internal/ --api-key $Global:NugetApiKey --force
-      }
-  }
-
-  Write-Host "Configuring choco sources"
-  choco source add -n Internal_Chocolatey -s http://localhost:8081/repository/ChocolateyGroup/
-  choco source disable -n chocolatey
-
-
-
-      $null = Invoke-NexusScript @removalParams
-  }
-
-  Write-Host "Seeding repository"
-
-  $packages = Get-ChildItem -Path C:\packages -Filter "*.nupkg"
-
-  If($Packages.Count -gt 0){
-      $packages | Foreach-Object {
-          choco push $_.Fullname -s http://localhost:8081/repository/Internal/ --api-key $Global:NugetApiKey --force
-      }
-  }
-
-  Write-Host "Configuring choco sources"
-  choco source add -n Internal_Chocolatey -s http://localhost:8081/repository/ChocolateyGroup/
-  choco source disable -n chocolatey
+Write-Host "Verifying source contents"
 
 
 }
+
 
 Function Set-NexusFirewall {
   $fwParams = @{
