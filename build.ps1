@@ -514,7 +514,7 @@ Install-SeleniumDependency
 Get-Scripts
 Install-Nexus
 Set-NexusFirewall
-Install-Jenkins
+Install-Jenkins > C:\scripts\buildlog.txt
 
 $InformationString = @"
         Nexus Information
