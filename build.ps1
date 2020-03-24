@@ -45,7 +45,7 @@ $null = New-Item C:\jenkinsxml -Itemtype Directory
 }
 [system.net.webclient]::new().DownloadFile('https://github.com/steviecoaster/CloudCreate/raw/master/jenkins-cli.jar','C:\jenkinsxml\jenkins-cli.jar')
 #endregion
-<#
+
 #region Nexus
 choco install nexus-repository -y --no-progress
 
@@ -503,6 +503,3 @@ Password: $(Get-Content "C:\Program Files (x86)\jenkins\secrets\initialAdminPass
 "@
 
 Write-Host $InformationString
-
-
-#>
