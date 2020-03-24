@@ -12,7 +12,7 @@
     },
     "size": {
       "type": "string",
-      "defaultValue": "Basic_A3"
+      "defaultValue": "Standard_D3_v2"
     },
     "userName": {
       "type": "string",
