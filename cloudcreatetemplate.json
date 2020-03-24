@@ -23,7 +23,7 @@
     },
     "Run_PowerShell_scriptFileUris": {
       "type": "string",
-      "defaultValue": "[[\"https://github.com/steviecoaster/CloudCreate/blob/master/build.ps1\"]"
+      "defaultValue": "[[\"https://raw.githubusercontent.com/steviecoaster/CloudCreate/master/build.ps1\"]"
     },
     "Run_PowerShell_scriptToRun": {
       "type": "string",
