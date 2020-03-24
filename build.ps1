@@ -384,9 +384,6 @@ Function Install-Jenkins {
   $driver = Start-SeChrome -Maximized -Headless
   Start-Sleep -Seconds 20
 
-  $driver = Start-SeChrome -Maximized -Headless
-  Start-Sleep -Seconds 30
-
   Enter-SeUrl -Url http://localhost:8080 -Driver $driver
   Start-Sleep -Seconds 3
 
