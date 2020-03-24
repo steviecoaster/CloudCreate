@@ -45,8 +45,7 @@ Function Get-Scripts {
 }
 
 Function Install-Nexus {
-  choco install nexus-repository -y -s https://chocolatey.org/api/v2
-  choco install nexus-repository -y --no-progress
+  choco install nexus-repository -y -s https://chocolatey.org/api/v2 --no-progress
 
   function Invoke-NexusScript {
 
@@ -246,15 +245,12 @@ Function Install-Nexus {
 
 
   Write-Host "$finishOutput" -ForegroundColor Green
-<<<<<<< HEAD
+
 
   $global:NugetApiKey = $result.result
 
-=======
 
-  $global:NugetApiKey = $result.result
 
->>>>>>> e073229df9273de84df292b15cef9151d1b566c0
   #Create Hosted Repository
   $createHostedRepoParams = @{
       ServerUri = $params.ServerUri
