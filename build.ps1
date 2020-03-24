@@ -1,8 +1,9 @@
 #region Chocolatey
 Set-ExecutionPolicy Bypass -Scope Process -Force
-Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1')
+Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
 #endregion
 
+<#
 #region Selenium
 #Get Latest Pester.....bullet-proof/strong arm/asshole method
 $null = Install-PackageProvider -Name NuGet -Force
@@ -504,3 +505,4 @@ Password: $(Get-Content "C:\Program Files (x86)\jenkins\secrets\initialAdminPass
 Write-Host $InformationString
 
 
+#>
