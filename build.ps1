@@ -425,7 +425,7 @@ Function New-JenkinsScheduledTask {
 #Set-NexusFirewall
 New-JenkinsScheduledTask -User $TaskUser -Pass $TaskPass
 
-
+<#
 $InformationString = @"
         Nexus Information
 BaseUrl: http://localhost:8081
@@ -440,3 +440,4 @@ Password: $(Get-Content "C:\Program Files (x86)\jenkins\secrets\initialAdminPass
 "@
 
 #Write-Host $InformationString
+#>
