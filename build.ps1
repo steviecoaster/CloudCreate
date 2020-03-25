@@ -1,3 +1,14 @@
+[cmdletBinding()]
+param(
+  [parameter()]
+  [string]
+  $Test1,
+
+  [parameter()]
+  [string]
+  $Test2
+)
+
 Function Install-Chocolatey {
   Set-ExecutionPolicy Bypass -Scope Process -Force
   Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
@@ -242,6 +253,8 @@ Function Install-Jenkins {
   # Start Jenkins in Selenium
 
   $driver = Start-SeChrome -Maximized -Headless
+  # Enforce a reasonable window size
+  $driver.Manage().Window.Size = [System.Drawing.Size]::new(1600, 900)
   Start-Sleep -Seconds 20
 
   Enter-SeUrl -Url http://localhost:8080 -Driver $driver
@@ -369,12 +382,28 @@ Function Install-Jenkins {
   Stop-SeDriver -Driver $driver
 }
 
-Install-Chocolatey
-Install-SeleniumDependency
-Get-Scripts
-Install-Nexus
-Set-NexusFirewall
-Install-Jenkins > C:\scripts\buildlog.txt
+Function New-JenkinsScheduledTask {
+
+  process {
+    $action = New-ScheduledTaskAction -Execute 'C:\windows\system32\WindowsPowerShellv1.0\powershell.exe' -Argument "-NonInteractive -Nologo -NoProfile -File 'C:\scripts\Jenkins.ps1'" -WorkingDirectory 'C:\scripts'
+    $trigger = New-ScheduledTaskTrigger -Once -At 3am
+    $settings = New-ScheduledTaskSettingsSet   -DontStopOnIdleEnd -Restart-Interval (New-Timespan -Minutes 1) -RestartCount 10 -StartWhenAvailable
+    $settings.ExecutionTimeout = "PT0S"
+
+    $cred =
+    Install-Jenkins
+
+  }
+}
+
+
+#Install-Chocolatey
+#Install-SeleniumDependency
+#Get-Scripts
+#Install-Nexus
+#Set-NexusFirewall
+#New-JenkinsScheduledTask
+
 
 $InformationString = @"
         Nexus Information
@@ -389,4 +418,8 @@ Username: admin
 Password: $(Get-Content "C:\Program Files (x86)\jenkins\secrets\initialAdminPassword")
 "@
 
-Write-Host $InformationString
+#Write-Host $InformationString
+
+
+Write-Host "You passed: $Test1"
+Write-Host "You also passed: $Test2"
