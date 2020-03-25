@@ -399,12 +399,12 @@ Function New-JenkinsScheduledTask {
     $Pass
   )
   process {
-
+    if(!(Test-Path C:\scripts)){
+        $null = New-Item C:\scripts -ItemType Directory
+    }
     ${Function:\Install-Jenkins} | Set-Content "C:\scripts\Jenkins.ps1"
     $action = New-ScheduledTaskAction -Execute 'C:\windows\system32\WindowsPowerShellv1.0\powershell.exe' -Argument "-NonInteractive -Nologo -NoProfile -File 'C:\scripts\Jenkins.ps1'" -WorkingDirectory 'C:\scripts'
     $trigger = New-ScheduledTaskTrigger -Once -At 3am
-    $settings = New-ScheduledTaskSettingsSet   -DontStopOnIdleEnd -Restart-Interval (New-Timespan -Minutes 1) -RestartCount 10 -StartWhenAvailable
-    #$settings.ExecutionTimeout = "PT0S"
     $securePass = $Pass | ConvertTo-SecureString -AsPlainText -Force
     $cred = [System.Management.Automation.PSCredential]::new($User,$securePass)
 
