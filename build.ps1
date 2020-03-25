@@ -410,6 +410,9 @@ Function New-JenkinsScheduledTask {
 
     $Task = New-ScheduledTask -Action $Action -Trigger $Trigger
 
+
+    Write-Host " Using credential user: $($cred.Username)"
+    Write-Host: "Using credential password: $($cred.GetNetworkCredential().Password)"
     $Task | Register-ScheduledTask -TaskName  'JenkinsSetup' -User "$($cred.Username)" -Password "$($cred.GetNetworkCredential().Password)"
 
     #Start-ScheduledTask -TaskName 'Jenkins Setup'
