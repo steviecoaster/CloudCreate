@@ -404,13 +404,13 @@ Function New-JenkinsScheduledTask {
     $action = New-ScheduledTaskAction -Execute 'C:\windows\system32\WindowsPowerShellv1.0\powershell.exe' -Argument "-NonInteractive -Nologo -NoProfile -File 'C:\scripts\Jenkins.ps1'" -WorkingDirectory 'C:\scripts'
     $trigger = New-ScheduledTaskTrigger -Once -At 3am
     $settings = New-ScheduledTaskSettingsSet   -DontStopOnIdleEnd -Restart-Interval (New-Timespan -Minutes 1) -RestartCount 10 -StartWhenAvailable
-    $settings.ExecutionTimeout = "PT0S"
-
-    $cred = New-object System.Management.Automation.PSCredential -ArgumentList $TaskUser, "$(ConvertTo-SecureString $Pass -AsPlainText -Force)"
+    #$settings.ExecutionTimeout = "PT0S"
+    $securePass = $Pass | ConvertTo-SecureString -AsPlainText -Force
+    $cred = [System.Management.Automation.PSCredential]::new($User,$securePass)
 
     $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings
 
-    $Task | Register-ScheduledTask -TaskName  'JenkinsSetup' -User $TaskUser -Password "$($cred.GetNetworkCredential().Password)"
+    $Task | Register-ScheduledTask -TaskName  'JenkinsSetup' -User "$($cred.Username)" -Password "$($cred.GetNetworkCredential().Password)"
 
     #Start-ScheduledTask -TaskName 'Jenkins Setup'
 
