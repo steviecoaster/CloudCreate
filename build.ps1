@@ -408,7 +408,7 @@ Function New-JenkinsScheduledTask {
     $securePass = $Pass | ConvertTo-SecureString -AsPlainText -Force
     $cred = [System.Management.Automation.PSCredential]::new($User,$securePass)
 
-    $Task = New-ScheduledTask -Action $Action -Trigger $Trigger -Settings $Settings
+    $Task = New-ScheduledTask -Action $Action -Trigger $Trigger
 
     $Task | Register-ScheduledTask -TaskName  'JenkinsSetup' -User "$($cred.Username)" -Password "$($cred.GetNetworkCredential().Password)"
 
